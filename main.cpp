@@ -88,8 +88,6 @@ public:
 
      virtual void AddEdge(int from, int to) final {
          int pos;
-
-
         if(std::find(allVertices.begin(), allVertices.end(), from) == allVertices.end()){
             std::vector<int> vecEmpty;
             int _pos = position(allVertices,from);
