@@ -2,51 +2,34 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-
-int position(std::vector<int>vec,int n){
-    if(vec.size() == 0) return 0;
-    int a = 0;
-    int b = vec.size()-1;
-    int m;
-    if (vec[a] >= n) return 0;
-    if (vec[b] <= n) return vec.size();
-    while(b - a > 1){
-        m = (a+b)/2;
-
-        if(vec[m] <= n){
-            a = m;
-        } else b = m;
-
-    }
-    return a+1;
-
-}
-
+#include <map>
 
 class IGraph {
 public:
 
 public:
 
-    virtual ~IGraph() {}
+    virtual ~IGraph() = default;
 
-    IGraph() {};
+    IGraph() = default;;
 
-    IGraph(int inPower) {};
+    explicit IGraph(int inPower) {};
 
-    IGraph(const IGraph& other) {};
+    IGraph(const IGraph& other) = default;
+
+  //  IGraph& operator = (const IGraph& other) = default;
 
     virtual void AddEdge(int from, int to) = 0;
     // Метод принимает вершины начала и конца ребра и добавляет ребро
 
-    virtual int verticesCount() const = 0; // Метод должен считать текущее количество вершин
+    [[nodiscard]] virtual int verticesCount() const = 0; // Метод должен считать текущее количество вершин
 
-    virtual std::vector<int> Vertices() const = 0; // Метод должен вернуть текущие список текущих вершин
+    [[nodiscard]] virtual std::vector<int> Vertices() const = 0; // Метод должен вернуть текущие список текущих вершин
 
     virtual void getNextVertices(int vertex, std::vector<int> &vertices) const = 0;
     // Для конкретной вершины метод выводит в вектор “вершины” все вершины, в которые можно дойти по ребру из данной
 
-    virtual void getPrevVertices(int vertex, std::vector<int> &allVertices) const = 0;
+    virtual void getPrevVertices(int vertex, std::vector<int> &vertices) const = 0;
     // Для конкретной вершины метод выводит в вектор “вершины” все вершины, из которых можно дойти по ребру в данную
 
     virtual void show() = 0;
@@ -58,82 +41,116 @@ class ListGraph: public IGraph
 {
 
 public:
-    std::vector<int>allVertices;
-    std::vector<std::vector<int>> adj;
+    std::map<int,std::vector<int>> nextVert;
+    std::map<int,std::vector<int>> prevVert;
 
-     ListGraph(int inPower): IGraph(inPower)
+     explicit ListGraph(int inPower): IGraph(inPower)
      {
-         adj.resize(inPower);
-         allVertices.resize(inPower);
-         for(int i = 0; i < allVertices.size(); i++){
-             allVertices[i] = i;
+         if(inPower<0) inPower = 0;
+         for(int i = 0; i < inPower; i++){
+             std::vector<int> emptyVec;
+             nextVert.insert(std::make_pair(i,emptyVec));
          }
      };
-     ListGraph(){};
+     ListGraph(): ListGraph(0){};
 
-   /*  ListGraph(const IGraph& other){
-
+         ListGraph(const IGraph& other){
+         std::vector<int> vec = other.Vertices();
+         for(int & i : vec){
+             std::vector<int>next,prev;
+             other.getNextVertices(i,next);
+             other.getPrevVertices(i,prev);
+             nextVert.insert(std::make_pair(i,next));
+             prevVert.insert(std::make_pair(i,prev));
+         }
      }
 
-     ListGraph& operator = ( IGraph* other){
+     ListGraph& operator = (IGraph* other){
+         if(this == other) return *this;
 
-
+         std::vector<int> vec = other->Vertices();
+         for(int & i : vec){
+             std::vector<int>next,prev;
+             other->getNextVertices(i,next);
+             other->getPrevVertices(i,prev);
+             nextVert.insert(std::make_pair(i,next));
+             prevVert.insert(std::make_pair(i,prev));
+         }
      }
 
-*/
+    ListGraph& operator = (const IGraph& other){
+        if(this == &other) return *this;
 
-     virtual ~ListGraph() final{};
+        std::vector<int> vec = other.Vertices();
+        for(int & i : vec){
+            std::vector<int>next,prev;
+            other.getNextVertices(i,next);
+            other.getPrevVertices(i,prev);
+            nextVert.insert(std::make_pair(i,next));
+            prevVert.insert(std::make_pair(i,prev));
+        }
+    }
+
+
+
+
+    ~ListGraph() final{
+         std::cout<<"Deleted"<<std::endl;
+     };
 
 
 
      virtual void AddEdge(int from, int to) final {
-         int pos;
-
-
-        if(std::find(allVertices.begin(), allVertices.end(), from) == allVertices.end()){
-            std::vector<int> vecEmpty;
-            int _pos = position(allVertices,from);
-            allVertices.insert(allVertices.begin()+_pos,from);
-            adj.insert(adj.begin()+_pos,vecEmpty);
-
-        };
-        if(std::find(allVertices.begin(), allVertices.end(), to) == allVertices.end()){
-            std::vector<int> vecEmpty;
-            int _pos = position(allVertices,to);
-            allVertices.insert(allVertices.begin()+_pos,to);
-            adj.insert(adj.begin()+_pos,vecEmpty);
-
-        }
-            auto itFrom = std::find(allVertices.begin(), allVertices.end(), from);
-            pos = itFrom - allVertices.begin();
-
-            if(std::find(adj[pos].begin(), adj[pos].end(), to) == adj[pos].end()) {
-                adj[pos].push_back(to);
-            } else {
-                std::cout<<"Graph contains this connection"<<std::endl;
-            }
-
+         auto itNext = nextVert.find(from);
+         auto itPrev = prevVert.find(to);
+         std::vector<int> nv(1, to);
+         std::vector<int> pv(1, from);
+         std::vector<int> emptyVec;
+         if(itNext==nextVert.end()){
+             nextVert.insert(std::make_pair(from, nv));
+             if(itPrev==prevVert.end()) {
+                 nextVert.insert(std::make_pair(to, emptyVec));
+                 prevVert.insert(std::make_pair(to, pv));
+             } else {
+                 if(std::find(itPrev->second.begin(), itPrev->second.end(), from) == itPrev->second.end()){
+                     itPrev->second.push_back(from);
+                 }
+             }
+             prevVert.insert(std::make_pair(from, emptyVec));
+         } else{
+             if(std::find(itNext->second.begin(), itNext->second.end(), to) == itNext->second.end()){
+                 itNext->second.push_back(to);
+             }
+             if(itPrev==prevVert.end()){
+                 nextVert.insert(std::make_pair(to, emptyVec));
+                 prevVert.insert(std::make_pair(to, pv));
+             } else {
+                 if(std::find(itPrev->second.begin(), itPrev->second.end(), from)== itPrev->second.end()){
+                     itPrev->second.push_back(from);
+                 }
+             }
+         }
 
     };
 
      virtual int verticesCount() const final{
-        return allVertices.size();
+        return nextVert.size();
      }
 
      virtual std::vector<int> Vertices() const final{
-         return allVertices;
+         std::vector<int> vec;
+
+         for(auto it = nextVert.begin();it!=nextVert.end();++it){
+             vec.push_back(it->first);
+         }
+         return vec;
      };
 
      virtual void getNextVertices(int vertex, std::vector<int> &vertices) const final{
          vertices.resize(0);
-         auto itFind = std::find(allVertices.begin(), allVertices.end(), vertex);
-         if(itFind!=allVertices.end())  {
-            int pos = itFind - allVertices.begin();
-            if(!adj[pos].empty()) {
-                vertices = adj[vertex];
-            } else{
-                vertices.resize(0);
-            }
+         auto itFind = nextVert.find(vertex);
+         if(itFind!=nextVert.end()){
+             vertices = itFind->second;
          } else {
             std::cout<<"Incorrect vertex"<<std::endl;
          }
@@ -141,104 +158,178 @@ public:
 
      virtual void getPrevVertices(int vertex, std::vector<int> &vertices) const final{
          vertices.resize(0);
-         if(std::find(allVertices.begin(), allVertices.end(), vertex)!=allVertices.end()){
-             for(int i = 0; i < adj.size(); i++){
-                 if(std::find(adj[i].begin(), adj[i].end(), vertex)!=adj[i].end()){
-                     vertices.push_back(allVertices[i]);
-                 }
-             }
+         auto itFind = prevVert.find(vertex);
+         if(itFind!=prevVert.end()){
+             vertices = itFind->second;
          } else {
              std::cout<<"Incorrect vertex"<<std::endl;
          }
      }
 
      virtual void show() final{
-         for(int i = 0; i<adj.size();i++){
-             std::cout << allVertices[i] << " | ";
-             for(int j = 0; j < adj[i].size();j++){
 
-                 std::cout<<adj[i][j]<<" ";
+        std::cout<<"Next"<<std::endl;
+         for(auto it = nextVert.begin(); it!=nextVert.end();++it){
+             std::cout << it->first << " | ";
+             for(int j = 0; j < it->second.size();j++){
+
+                 std::cout<<it->second[j]<<" ";
              }
              std::cout<<std::endl;
          }
+
+         std::cout<<"Previous"<<std::endl;
+
+        for(auto it = prevVert.begin(); it!=prevVert.end();++it){
+            std::cout << it->first << " | ";
+            for(int j = 0; j < it->second.size();j++){
+
+                std::cout<<it->second[j]<<" ";
+            }
+            std::cout<<std::endl;
+        }
      }
 
 };
-/*
+
+
 class MatrixGraph:virtual public IGraph
 {
+    std::map<int,int>vertToIndex;
+    std::vector<int>indexToVert;
+    std::vector<std::vector<int>> matrix;
+
 
 public:
     MatrixGraph(int inPower):IGraph(inPower){
-        adj.resize(inPower);
-        for(int i = 0; i<inPower;i++){
-            adj[i].resize(power);
+        if(inPower<0) inPower = 0;
+        for(int i = 0; i < inPower; i++){
+            vertToIndex.insert(std::make_pair(i,i));
+            indexToVert.push_back(i);
         }
-    }
-
-    MatrixGraph(): MatrixGraph(5){};
-
-    MatrixGraph(IGraph* other){
-        power = other->power;
-        if(other->getClass() == "MatrixGraph") {
-            adj = other->adj;
-        }else{
-            adj.resize(power);
-            for(int i = 0; i < power; i++){
-                adj[i].resize(power);
-                for(int j = 0; j < other->adj[i].size(); j++){
-                    adj[i][other->adj[i][j]] = 1;
-                }
+        matrix.resize(inPower);
+        for(int i = 0; i < inPower; i++){
+            for(int j = 0; j < inPower; j++) {
+                matrix[i].push_back(0);
             }
         }
     }
 
-    MatrixGraph& operator = ( IGraph* other){
+    MatrixGraph():MatrixGraph(0){};
+
+    MatrixGraph(const IGraph& other){
+        vertToIndex.clear();
+        indexToVert = other.Vertices();
+        matrix.resize(indexToVert.size());
+
+        for(int i = 0; i< indexToVert.size(); i++){
+
+            vertToIndex.insert(std::make_pair(indexToVert[i], i));
+            matrix[i].resize(indexToVert.size());
+        }
+
+        for(int i = 0; i< indexToVert.size(); i++){
+            std::vector<int>next;
+            other.getNextVertices(indexToVert[i],next);
+            for(int j = 0; j < next.size(); i++) {
+                matrix[i][vertToIndex[next[j]]] = 1;
+            }
+        }
+    }
+
+    MatrixGraph& operator = (IGraph* other){
         if(this == other) return *this;
-        power = other->power;
-        if(other->getClass() == "MatrixGraph") {
-            adj = other->adj;
-        }else{
-            adj.resize(power);
-            for(int i = 0; i < power; i++){
-                adj[i].resize(power);
-                for(int j = 0; j < other->adj[i].size(); j++){
-                    adj[i][other->adj[i][j]] = 1;
-                }
+        vertToIndex.clear();
+        matrix.resize(0);
+        indexToVert = other->Vertices();
+        matrix.resize(indexToVert.size());
+
+        for(int i = 0; i< indexToVert.size(); i++){
+
+            vertToIndex.insert(std::make_pair(indexToVert[i], i));
+            matrix[i].resize(indexToVert.size());
+        }
+
+        for(int i = 0; i< indexToVert.size(); i++){
+            std::vector<int>next;
+            other->getNextVertices(indexToVert[i],next);
+            for(int j = 0; j < next.size(); i++) {
+                matrix[i][vertToIndex[next[j]]] = 1;
             }
         }
+
     }
 
-    virtual ~MatrixGraph() final{}
+    MatrixGraph& operator = (const IGraph& other){
+        if(this == &other) return *this;
+        vertToIndex.clear();
+        matrix.resize(0);
+        indexToVert = other.Vertices();
+        matrix.resize(indexToVert.size());
 
-    virtual std::string getClass(){
-        return "MatrixGraph";
-    };
+        for(int i = 0; i< indexToVert.size(); i++){
+
+            vertToIndex.insert(std::make_pair(indexToVert[i], i));
+            matrix[i].resize(indexToVert.size());
+        }
+
+        for(int i = 0; i< indexToVert.size(); i++){
+            std::vector<int>next;
+            other.getNextVertices(indexToVert[i],next);
+            for(int j = 0; j < next.size(); i++) {
+                matrix[i][vertToIndex[next[j]]] = 1;
+            }
+        }
+
+    }
+
+    ~MatrixGraph() final{
+        std::cout<<"Deleted"<<std::endl;
+    }
+
 
     virtual void AddEdge(int from, int to) final{
-        if((from<power)&&(to<power)&&(to!=from)){
-            if(adj[from][to] == 0) {
-                adj[from][to] = 1;
-            } else {
-                std::cout<<"Graph contains this connection"<<std::endl;
+        auto itFrom = vertToIndex.find(from);
+        if(itFrom == vertToIndex.end()){
+            indexToVert.push_back(from);
+            vertToIndex.insert(std::make_pair(from,indexToVert.size()-1));
+            std::vector<int> vec(indexToVert.size()-1,0);
+            matrix.push_back(vec);
+            for(auto & i : matrix){
+                i.push_back(0);
             }
-        } else {
-            std::cout<<"You inputted incorrect edge"<<std::endl;
         }
+        auto itTo = vertToIndex.find(to);
+        if(itTo== vertToIndex.end()){
+            indexToVert.push_back(to);
+            vertToIndex.insert(std::make_pair(to,indexToVert.size()-1));
+            std::vector<int> vec(indexToVert.size()-1,0);
+            matrix.push_back(vec);
+            for(auto & i : matrix){
+                i.push_back(0);
+            }
+        }
+        itFrom = vertToIndex.find(from);
+        itTo = vertToIndex.find(to);
+        matrix[itFrom->second][itTo->second] = 1;
+
     };
     // Метод принимает вершины начала и конца ребра и добавляет ребро
 
     virtual int verticesCount() const final{
-        return power;
+        return vertToIndex.size();
     }; // Метод должен считать текущее количество вершин
 
-    virtual void getNextVertices(int vertex, std::vector<int> &allVertices) const final{
-        allVertices.resize(0);
-        if((vertex > 0)&&(vertex < power))  {
-            for(int j = 0; j < adj[vertex].size(); j++){
-                if(adj[vertex][j]!=0) {
-                    allVertices.push_back(j);
-                }
+    virtual std::vector<int> Vertices() const final{
+        return indexToVert;
+    };
+
+    virtual void getNextVertices(int vertex, std::vector<int> &vertices) const final{
+        vertices.resize(0);
+        auto it = vertToIndex.find(vertex);
+        if(it!=vertToIndex.end()){
+            for(int i = 0; i < matrix.size();i++){
+                if(matrix[it->second][i] == 1) vertices.push_back(indexToVert[i]);
             }
         } else {
             std::cout<<"Incorrect vertex"<<std::endl;
@@ -246,13 +337,12 @@ public:
     }
     // Для конкретной вершины метод выводит в вектор “вершины” все вершины, в которые можно дойти по ребру из данной
 
-    virtual void getPrevVertices(int vertex, std::vector<int> &allVertices) const final{
-        allVertices.resize(0);
-        if((vertex > 0)&&(vertex < power))  {
-            for(int i = 0; i < adj.size(); i++){
-                if(adj[i][vertex]!=0) {
-                    allVertices.push_back(i);
-                }
+    virtual void getPrevVertices(int vertex, std::vector<int> &vertices) const final{
+        vertices.resize(0);
+        auto it = vertToIndex.find(vertex);
+        if(it!=vertToIndex.end()){
+            for(int i = 0; i < matrix.size();i++){
+                if(matrix[i][it->second] == 1) vertices.push_back(indexToVert[i]);
             }
         } else {
             std::cout<<"Incorrect vertex"<<std::endl;
@@ -262,20 +352,21 @@ public:
 
     virtual void show() final{
 
+
         std::cout<<"\t";
 
-        for(int j = 0; j < adj[1].size();j++) {std::cout<<j<<"\t";};
+        for(int j = 0; j < matrix.size();j++) {std::cout<<indexToVert[j]<<"\t";};
         std::cout<<std::endl;
 
         std::cout<<"\t";
 
-        for(int j = 0; j < adj[1].size();j++) {std::cout<<"-"<<"\t";};
+        for(int j = 0; j < matrix.size();j++) {std::cout<<"-"<<"\t";};
         std::cout<<std::endl;
 
-        for(int i = 0; i < adj.size(); i++){
-            std::cout<<i<<"|"<<"\t";
-            for(int j = 0; j < adj[i].size();j++){
-                std::cout<<adj[i][j]<<"\t";
+        for(int i = 0; i < matrix.size(); i++){
+            std::cout<<indexToVert[i]<<"|"<<"\t";
+            for(int j = 0; j < matrix[i].size();j++){
+                std::cout<<matrix[i][j]<<"\t";
             }
             std::cout<<std::endl;
         }
@@ -283,7 +374,7 @@ public:
 
 };
 
-*/
+
 
 void show(std::vector<int>& vec){
     if(vec.size() == 0){
@@ -299,17 +390,54 @@ void show(std::vector<int>& vec){
 
 
 int main() {
-    int num;
+    MatrixGraph g1;
+
+
+
+    g1.AddEdge(1, 2);
+
+    g1.AddEdge(1, 4);
+
+    g1.AddEdge(1, 2);
+
+    g1.AddEdge(100, 100);
+
+    g1.AddEdge(100, 100);
+
+    g1.AddEdge(-1, 1);
+    g1.show();
+
+
+
+
+
+    ListGraph g2 = g1;
+
+
+    g2.show();
+
+
+
+
+
+
+
+
+
+
+
+
+   /* int num;
     std::cout<<"Input power of Graphs"<<std::endl;
     std::cin>>num;
     auto gr = new ListGraph(num);
 
 
-   // auto mgr = new MatrixGraph(num);
+    auto mgr = new MatrixGraph(num);
     std::cout<<"Empty ListGraph"<<std::endl;
     gr->show();
- //   std::cout<<"Empty MatrixGraph"<<std::endl;
-  //  mgr->show();
+    std::cout<<"Empty MatrixGraph"<<std::endl;
+    mgr->show();
 
     std::vector<int> nextVertices, prevVertices, mNextVertices, mPrevVertices;
 
@@ -322,42 +450,42 @@ int main() {
             int from, to;
             std::cin >> from >> to;
             gr->AddEdge(from, to);
-         //   mgr->AddEdge(from, to);
+            mgr->AddEdge(from, to);
         }
         std::cout<<"input request new or exit"<<std::endl;
         std::cin>>request;
     }
     std::cout<<"ListGraph after edge adding"<<std::endl;
     gr->show();
-  //  std::cout<<"MatrixGraph after edge adding"<<std::endl;
-  //  mgr->show();
+    std::cout<<"MatrixGraph after edge adding"<<std::endl;
+    mgr->show();
 
     std::cout<<"number of vertex for ListGraph"<<std::endl;
     std::cout << gr->verticesCount() << std::endl;
 
     std::cout<<"number of vertex for MatrixGraph"<<std::endl;
-  //  std::cout << mgr->verticesCount() << std::endl;
+    std::cout << mgr->verticesCount() << std::endl;
     std::cout<<"Input vertex for showing vector next allVertices"<<std::endl;
     int vert;
     std::cin>> vert;
     std::cout<<"next Vertices for ListGraph"<<std::endl;
     gr->getNextVertices(vert,nextVertices);
     show(nextVertices);
-  //  std::cout<<"next Vertices for MatrixGraph"<<std::endl;
-  //  mgr->getNextVertices(vert, mNextVertices);
-  //  show(mNextVertices);
+    std::cout<<"next Vertices for MatrixGraph"<<std::endl;
+    mgr->getNextVertices(vert, mNextVertices);
+    show(mNextVertices);
     std::cout<<"Input vertex for showing vector previous allVertices"<<std::endl;
     std::cin>>vert;
     std::cout<<"previous Vertices for ListGraph"<<std::endl;
     gr->getPrevVertices(vert,prevVertices);
     show(prevVertices);
 
-  //  std::cout<<"previous Vertices for MatrixGraph"<<std::endl;
-  //  mgr->getPrevVertices(vert,mPrevVertices);
-   // show(mPrevVertices);
-    /*
+    std::cout<<"previous Vertices for MatrixGraph"<<std::endl;
+    mgr->getPrevVertices(vert,mPrevVertices);
+    show(mPrevVertices);
+
     std::cout<<"Constructor from IGraph"<<std::endl;
-    auto cgr = new ListGraph(mgr);
+    auto cgr = new ListGraph(*mgr);
     cgr->show();
 
     std::cout<<"assignment operator"<<std::endl;
@@ -367,7 +495,7 @@ int main() {
     igr->show();
 
     std::cout<<"after assignment"<<std::endl;
-    *igr = mgr;
+    *igr = *mgr;
 
     igr->show();
 
@@ -377,7 +505,7 @@ int main() {
   //  delete mgr;
 
 
-
 */
+
     return 0;
 }
