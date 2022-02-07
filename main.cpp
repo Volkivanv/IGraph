@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <map>
 
+
 class IGraph {
 public:
 
