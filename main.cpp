@@ -66,21 +66,12 @@ public:
          }
      }
 
-     ListGraph& operator = (IGraph* other){
-         if(this == other) return *this;
 
-         std::vector<int> vec = other->Vertices();
-         for(int & i : vec){
-             std::vector<int>next,prev;
-             other->getNextVertices(i,next);
-             other->getPrevVertices(i,prev);
-             nextVert.insert(std::make_pair(i,next));
-             prevVert.insert(std::make_pair(i,prev));
-         }
-     }
 
     ListGraph& operator = (const IGraph& other){
         if(this == &other) return *this;
+        nextVert.clear();
+        prevVert.clear();
 
         std::vector<int> vec = other.Vertices();
         for(int & i : vec){
@@ -140,9 +131,8 @@ public:
 
      virtual std::vector<int> Vertices() const final{
          std::vector<int> vec;
-
-         for(auto it = nextVert.begin();it!=nextVert.end();++it){
-             vec.push_back(it->first);
+         for(const auto & it : nextVert){
+             vec.push_back(it.first);
          }
          return vec;
      };
@@ -232,36 +222,12 @@ public:
         for(int i = 0; i< indexToVert.size(); i++){
             std::vector<int>next;
             other.getNextVertices(indexToVert[i],next);
-            for(int j = 0; j < next.size(); i++) {
+            for(int j = 0; j < next.size(); j++) {
                 matrix[i][vertToIndex[next[j]]] = 1;
             }
         }
     }
-
-    MatrixGraph& operator = (IGraph* other){
-        if(this == other) return *this;
-        vertToIndex.clear();
-        matrix.resize(0);
-        indexToVert = other->Vertices();
-        matrix.resize(indexToVert.size());
-
-        for(int i = 0; i< indexToVert.size(); i++){
-
-            vertToIndex.insert(std::make_pair(indexToVert[i], i));
-            matrix[i].resize(indexToVert.size());
-        }
-
-        for(int i = 0; i< indexToVert.size(); i++){
-            std::vector<int>next;
-            other->getNextVertices(indexToVert[i],next);
-            for(int j = 0; j < next.size(); i++) {
-                matrix[i][vertToIndex[next[j]]] = 1;
-            }
-        }
-
-    }
-
-    MatrixGraph& operator = (const IGraph& other){
+        MatrixGraph& operator = (const IGraph& other){
         if(this == &other) return *this;
         vertToIndex.clear();
         matrix.resize(0);
@@ -277,7 +243,7 @@ public:
         for(int i = 0; i< indexToVert.size(); i++){
             std::vector<int>next;
             other.getNextVertices(indexToVert[i],next);
-            for(int j = 0; j < next.size(); i++) {
+            for(int j = 0; j < next.size(); j++) {
                 matrix[i][vertToIndex[next[j]]] = 1;
             }
         }
@@ -391,31 +357,43 @@ void show(std::vector<int>& vec){
 
 
 int main() {
-    MatrixGraph g1;
-
-
+    ListGraph g1;
 
     g1.AddEdge(1, 2);
 
     g1.AddEdge(1, 4);
-
     g1.AddEdge(1, 2);
-
     g1.AddEdge(100, 100);
-
     g1.AddEdge(100, 100);
-
     g1.AddEdge(-1, 1);
+    std::cout<<"show g1"<<std::endl;
     g1.show();
 
 
 
 
 
-    ListGraph g2 = g1;
+    MatrixGraph g2 = g1;
 
-
+    std::cout<<"show g2 (ListGraph to MatrixGraph)"<<std::endl;
     g2.show();
+
+    MatrixGraph g3(g2);
+    g3.AddEdge(3, 4);
+    g3.AddEdge(-4,7);
+    g3.AddEdge(100,7);
+    std::cout<<"show g3"<<std::endl;
+    g3.show();
+
+    ListGraph g4 = g3;
+    std::cout<<"show g4 (MatrixGraph to ListGraph)"<<std::endl;
+    g4.show();
+
+    g4 = g1;
+    std::cout<<"show g4 after assignment g1"<<std::endl;
+    g4.show();
+
+
 
 
 
